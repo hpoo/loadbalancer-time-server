@@ -3,4 +3,11 @@ services:
   web:
     build: .
     ports:
-      - "8765:80" 
+      - "8765:80"
+
+  timeserver:
+    build: 
+      context: .
+      dockerfile: Dockerfile.node
+    ports:
+      - "8764:8764" 
