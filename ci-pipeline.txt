@@ -1,0 +1,94 @@
+I'll help you create a GitLab CI pipeline for this project. Since you have a Docker Compose setup with multiple services, we'll need to create a `.gitlab-ci.yml` file that builds and tests your application.
+
+Here's a basic `.gitlab-ci.yml` file to get you started:
+
+```yaml:.gitlab-ci.yml
+image: docker:20.10.16
+
+services:
+  - docker:20.10.16-dind
+
+variables:
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_TLS_VERIFY: 1
+  DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+
+before_script:
+  - docker info
+  - docker compose version
+
+stages:
+  - build
+  - test
+  - deploy
+
+build:
+  stage: build
+  script:
+    - docker compose build
+  artifacts:
+    paths:
+      - .
+
+test:
+  stage: test
+  script:
+    - docker compose up -d
+    - sleep 10  # Give services time to start
+    - curl -f http://localhost:8765 || exit 1  # Basic health check
+    - docker compose down
+  dependencies:
+    - build
+
+deploy:
+  stage: deploy
+  script:
+    - echo "Deploy to production server"
+  only:
+    - main
+  when: manual
+```
+
+To set this up, you'll need to:
+
+1. Create the `.gitlab-ci.yml` file in your project root
+
+2. Configure GitLab CI/CD variables in your project settings:
+   - Go to Settings > CI/CD > Variables
+   - Add any sensitive environment variables needed (like registry credentials)
+
+3. If you want to push to a container registry, you'll need to add these variables:
+   ```yaml
+   CI_REGISTRY: your.gitlab.registry.url
+   CI_REGISTRY_USER: registry-username
+   CI_REGISTRY_PASSWORD: registry-password
+   ```
+
+4. For the deploy stage, you'll need to:
+   - Set up SSH keys if deploying to a remote server
+   - Add deployment credentials as CI/CD variables
+   - Configure the deployment server details
+
+5. Optional but recommended additions:
+   - Add a `.dockerignore` file:
+   ```text:.dockerignore
+   .git
+   .gitlab-ci.yml
+   README.md
+   node_modules
+   ```
+
+   - Add caching for Docker layers:
+   ```yaml
+   variables:
+     DOCKER_BUILDKIT: 1
+     COMPOSE_DOCKER_CLI_BUILD: 1
+   ```
+
+6. If you're using a self-hosted GitLab instance, make sure:
+   - GitLab Runner is properly configured
+   - The runner has Docker executor enabled
+   - The runner has sufficient permissions
+
+Would you like me to provide more detailed configuration for any of these aspects or explain how to set up specific parts of the pipeline?
